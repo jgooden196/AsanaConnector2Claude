@@ -236,6 +236,33 @@ def setup():
 def health():
     """Health check endpoint"""
     return jsonify({"status": "healthy"}), 200
-
+@app.route('/register-webhook', methods=['GET'])
+def register_webhook():
+    """Register a webhook for the project"""
+    try:
+        # Your Railway app URL
+        app_url = request.url_root.rstrip('/')  # Gets the base URL without trailing slash
+        webhook_url = f"{app_url}/webhook"
+        
+        # Register the webhook
+        webhook = client.webhooks.create({
+            'resource': project_id,
+            'target': webhook_url
+        })
+        
+        logger.info(f"Webhook registered: {webhook['gid']}")
+        return jsonify({
+            "status": "success", 
+            "message": f"Webhook registered for project {project_id}", 
+            "webhook_gid": webhook['gid'],
+            "target_url": webhook_url
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error registering webhook: {e}")
+        return jsonify({
+            "status": "error", 
+            "message": f"Failed to register webhook: {str(e)}"
+        }), 500
 if __name__ == '__main__':
     app.run(debug=True)
