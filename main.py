@@ -9,7 +9,7 @@ asana_token = os.environ.get('ASANA_TOKEN')
 client = Client.access_token(asana_token)
 
 # Your Asana project ID
-project_id = 'YOUR_PROJECT_ID'
+project_id = '1209353707682767'
 
 # Function to update or create the Project Status task
 def update_project_status():
