@@ -240,9 +240,8 @@ def health():
 def register_webhook():
     """Register a webhook for the project"""
     try:
-        # Your Railway app URL
-        app_url = request.url_root.rstrip('/')  # Gets the base URL without trailing slash
-        webhook_url = f"{app_url}/webhook"
+        # Force HTTPS for Railway app URL
+        webhook_url = "https://asanaconnector2claude-production.up.railway.app/webhook"
         
         # Register the webhook
         webhook = client.webhooks.create({
