@@ -203,41 +203,14 @@ def handle_webhook():
         data = request.json
         logger.info(f"Received Asana Event: {data}")
         
-        # Get custom field GIDs
-        estimated_cost_gid, actual_cost_gid = get_custom_fields()
-        
-        # Process events
-        events = data.get('events', [])
-        should_update = False
-        
-        for event in events:
-            # Check if this is a task event that could affect our metrics
-            if event.get('resource', {}).get('resource_type') == 'task':
-                # Always update if a task is added or removed
-                action = event.get('action')
-                if action in ['added', 'removed', 'deleted', 'undeleted']:
-                    should_update = True
-                    break
-                
-                # For changes, check if it involves the actual cost field
-                if action == 'changed':
-                    resource = event.get('resource', {})
-                    # If this is a task and we know the actual cost field GID, check if it changed
-                    if actual_cost_gid and resource.get('resource_type') == 'task':
-                        # Update if any custom field changed (we'll filter by actual cost)
-                        if 'custom_field' in event.get('parent', {}).get('resource_type', ''):
-                            should_update = True
-                            break
-        
-        if should_update or not events:  # Also handle heartbeat events (empty events list)
-            # Update metrics
-            update_project_metrics()
+        # Default to updating metrics for any event
+        # This is simpler and ensures we always update when something changes
+        update_project_metrics()
         
         return jsonify({"status": "received"}), 200
     except Exception as e:
         logger.error(f"Error processing webhook: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
 @app.route('/setup', methods=['GET'])
 def setup():
     """Setup endpoint to initialize the project status task and metrics"""
