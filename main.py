@@ -25,7 +25,7 @@ ACTUAL_COST_FIELD = "Actual Cost"  # You'll need to replace this with your actua
 # Dictionary to store webhook secret dynamically
 WEBHOOK_SECRET = {}
 
-ddef get_custom_fields():
+def get_custom_fields():
     """Get the custom field GIDs for Estimated Cost and Actual Cost fields"""
     try:
         # Get all custom field settings for the project
