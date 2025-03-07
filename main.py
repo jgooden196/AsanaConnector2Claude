@@ -283,5 +283,82 @@ def manual_update():
             "message": "Failed to update project status"
         }), 500
 
+@app.route('/update-status', methods=['GET'])
+def update_status():
+    """User-friendly endpoint to manually update the Project Status task"""
+    try:
+        success = update_project_metrics()
+        
+        if success:
+            # Return a simple HTML page with a success message
+            html_response = """
+            <html>
+            <head>
+                <title>Project Status Updated</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                    .success { color: green; font-weight: bold; }
+                    .container { max-width: 600px; margin: 0 auto; }
+                    h1 { color: #333; }
+                    .button { 
+                        display: inline-block; 
+                        background: #4CAF50; 
+                        color: white; 
+                        padding: 10px 20px; 
+                        text-decoration: none; 
+                        border-radius: 4px; 
+                        margin-top: 20px; 
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Project Status</h1>
+                    <p class="success">✅ Project Status task has been successfully updated!</p>
+                    <p>The Project Status task in your Asana project now contains the latest budget information and metrics.</p>
+                    <p>Current time: """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + """</p>
+                    <a href="/update-status" class="button">Update Again</a>
+                </div>
+            </body>
+            </html>
+            """
+            return html_response
+        else:
+            # Return an error page
+            html_response = """
+            <html>
+            <head>
+                <title>Update Failed</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                    .error { color: red; font-weight: bold; }
+                    .container { max-width: 600px; margin: 0 auto; }
+                    h1 { color: #333; }
+                    .button { 
+                        display: inline-block; 
+                        background: #4CAF50; 
+                        color: white; 
+                        padding: 10px 20px; 
+                        text-decoration: none; 
+                        border-radius: 4px; 
+                        margin-top: 20px; 
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Project Status</h1>
+                    <p class="error">❌ Failed to update Project Status task.</p>
+                    <p>There was an error updating the Project Status task. Please try again later.</p>
+                    <a href="/update-status" class="button">Try Again</a>
+                </div>
+            </body>
+            </html>
+            """
+            return html_response
+    except Exception as e:
+        logger.error(f"Error in update-status endpoint: {e}")
+        return f"Error updating Project Status: {str(e)}", 500
+
 if __name__ == '__main__':
     app.run(debug=True)
