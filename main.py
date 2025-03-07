@@ -25,21 +25,21 @@ ACTUAL_COST_FIELD = "Actual Cost"  # You'll need to replace this with your actua
 # Dictionary to store webhook secret dynamically
 WEBHOOK_SECRET = {}
 
-def get_custom_fields():
+ddef get_custom_fields():
     """Get the custom field GIDs for Estimated Cost and Actual Cost fields"""
     try:
-        # Get all custom fields for the project
-        custom_fields = client.projects.get_custom_field_settings_for_project(project_id)
+        # Get all custom field settings for the project
+        custom_field_settings = client.custom_field_settings.find_by_project(project_id)
         
         estimated_cost_gid = None
         actual_cost_gid = None
         
-        for field in custom_fields:
-            field_name = field['custom_field']['name']
+        for setting in custom_field_settings:
+            field_name = setting['custom_field']['name']
             if field_name == ESTIMATED_COST_FIELD:
-                estimated_cost_gid = field['custom_field']['gid']
+                estimated_cost_gid = setting['custom_field']['gid']
             elif field_name == ACTUAL_COST_FIELD:
-                actual_cost_gid = field['custom_field']['gid']
+                actual_cost_gid = setting['custom_field']['gid']
         
         return estimated_cost_gid, actual_cost_gid
     except Exception as e:
