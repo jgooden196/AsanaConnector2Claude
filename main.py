@@ -72,110 +72,59 @@ def create_status_task():
         logger.error(f"Error creating status task: {e}")
         return None
 
-def update_project_metrics():
-    """Calculate project metrics and update the Project Status task"""
+@app.route('/webhook', methods=['POST'])
+def handle_webhook():
+    """Handles incoming webhook requests from Asana"""
+    # Check if this is the webhook handshake request
+    if 'X-Hook-Secret' in request.headers:
+        secret = request.headers['X-Hook-Secret']
+        WEBHOOK_SECRET['secret'] = secret  # Store secret dynamically
+        
+        response = jsonify({})
+        response.headers['X-Hook-Secret'] = secret  # Send back the secret
+         
+        logger.info(f"Webhook Handshake Successful. Secret: {secret}")
+        return response, 200
+    
+    # If it's not a handshake, it's an event
     try:
+        data = request.json
+        logger.info(f"Received Asana Event: {data}")
+        
+        # Get custom field GIDs
         estimated_cost_gid, actual_cost_gid = get_custom_fields()
-        if not estimated_cost_gid or not actual_cost_gid:
-            logger.error("Could not find custom field GIDs")
-            return False
         
-        # Get all tasks in the project
-        tasks = client.tasks.find_by_project(project_id)
+        # Process events
+        events = data.get('events', [])
+        should_update = False
         
-        total_estimated = 0
-        total_actual = 0
-        completed_tasks = 0
-        total_tasks = 0
-        overbudget_tasks = []
-        
-        # Find status task or create if not exists
-        status_task_gid = find_status_task()
-        if not status_task_gid:
-            status_task_gid = create_status_task()
-            if not status_task_gid:
-                return False
-        
-        # Process each task
-        for task in tasks:
-            task_gid = task['gid']
-            
-            # Skip the status task itself
-            if task_gid == status_task_gid:
-                continue
-            
-            # Get full task details to access custom fields
-            task_details = client.tasks.find_by_id(task_gid)
-            
-            total_tasks += 1
-            
-            # Extract costs from custom fields
-            estimated_cost = 0
-            actual_cost = 0
-            
-            if 'custom_fields' in task_details:
-                for field in task_details['custom_fields']:
-                    if field['gid'] == estimated_cost_gid and field.get('number_value') is not None:
-                        estimated_cost = field['number_value']
-                    elif field['gid'] == actual_cost_gid and field.get('number_value') is not None:
-                        actual_cost = field['number_value']
-            
-            # Add to totals
-            total_estimated += estimated_cost
-            
-            # Only add actual costs if they exist (work completed)
-            if actual_cost > 0:
-                total_actual += actual_cost
-                completed_tasks += 1
+        for event in events:
+            # Check if this is a task event that could affect our metrics
+            if event.get('resource', {}).get('resource_type') == 'task':
+                # Always update if a task is added or removed
+                action = event.get('action')
+                if action in ['added', 'removed', 'deleted', 'undeleted']:
+                    should_update = True
+                    break
                 
-                # Check if task is over budget
-                if actual_cost > estimated_cost:
-                    overbudget_tasks.append({
-                        'name': task['name'],
-                        'estimated': estimated_cost,
-                        'actual': actual_cost,
-                        'difference': actual_cost - estimated_cost
-                    })
+                # For changes, check if it involves the actual cost field
+                if action == 'changed':
+                    resource = event.get('resource', {})
+                    # If this is a task and we know the actual cost field GID, check if it changed
+                    if actual_cost_gid and resource.get('resource_type') == 'task':
+                        # Update if any custom field changed (we'll filter by actual cost)
+                        if 'custom_field' in event.get('parent', {}).get('resource_type', ''):
+                            should_update = True
+                            break
         
-        # Create summary
-        percent_complete = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
-        budget_progress = (total_actual / total_estimated * 100) if total_estimated > 0 else 0
+        if should_update or not events:  # Also handle heartbeat events (empty events list)
+            # Update metrics
+            update_project_metrics()
         
-        summary = f"""# Construction Project Budget Summary
-
-## Overall Budget
-- Total Estimated Budget: ${total_estimated:.2f}
-- Total Actual Cost Incurred: ${total_actual:.2f}
-- Remaining Budget: ${total_estimated - total_actual:.2f}
-- Budget Utilization: {budget_progress:.1f}%
-
-## Progress
-- Total Tasks: {total_tasks}
-- Completed Tasks (with actual costs): {completed_tasks}
-- Project Completion: {percent_complete:.1f}%
-
-"""
-        
-        # Add overbudget section if there are overbudget tasks
-        if overbudget_tasks:
-            summary += "## Overbudget Items\n"
-            for item in overbudget_tasks:
-                summary += f"- {item['name']}: Estimated ${item['estimated']:.2f}, Actual ${item['actual']:.2f} (${item['difference']:.2f} over budget)\n"
-            
-            total_overbudget = sum(item['difference'] for item in overbudget_tasks)
-            summary += f"\nTotal Amount Over Budget: ${total_overbudget:.2f}\n"
-        
-        # Update the status task
-        client.tasks.update(status_task_gid, {
-            'notes': summary
-        })
-        
-        logger.info("Successfully updated project metrics")
-        return True
-        
+        return jsonify({"status": "received"}), 200
     except Exception as e:
-        logger.error(f"Error updating project metrics: {e}")
-        return False
+        logger.error(f"Error processing webhook: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/webhook', methods=['POST'])
 def handle_webhook():
