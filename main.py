@@ -200,17 +200,19 @@ def handle_webhook():
     
     # If it's not a handshake, it's an event
     try:
-        data = request.json
-        logger.info(f"Received Asana Event: {data}")
+        # Log the request body
+        logger.info(f"Received webhook event")
         
-        # Default to updating metrics for any event
-        # This is simpler and ensures we always update when something changes
+        # Always update metrics for any event
+        logger.info("Updating project metrics from webhook event")
         update_project_metrics()
+        logger.info("Metrics update completed")
         
         return jsonify({"status": "received"}), 200
     except Exception as e:
-        logger.error(f"Error processing webhook: {e}")
+        logger.error(f"Error processing webhook: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+        
 @app.route('/setup', methods=['GET'])
 def setup():
     """Setup endpoint to initialize the project status task and metrics"""
