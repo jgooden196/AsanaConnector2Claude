@@ -2,7 +2,7 @@ import os
 import logging
 import sys
 from flask import Flask, request, jsonify
-from asana import Client, errors
+from asana import Client
 
 app = Flask(__name__)
 
