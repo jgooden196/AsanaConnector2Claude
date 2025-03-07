@@ -267,6 +267,21 @@ def register_webhook():
             "status": "error", 
             "message": f"Failed to register webhook: {str(e)}"
         }), 500
+@app.route('/update', methods=['GET'])
+def manual_update():
+    """Manually trigger an update of the Project Status task"""
+    success = update_project_metrics()
+    
+    if success:
+        return jsonify({
+            "status": "success", 
+            "message": "Project status manually updated"
+        }), 200
+    else:
+        return jsonify({
+            "status": "error", 
+            "message": "Failed to update project status"
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
