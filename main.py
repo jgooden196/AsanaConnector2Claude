@@ -16,7 +16,7 @@ asana_token = os.environ.get('ASANA_TOKEN')
 client = Client.access_token(asana_token)
 
 # Your Asana project ID
-project_id = '1209602262926911'
+project_id = '1209353707682767'
 
 # Constants
 STATUS_TASK_NAME = "Project Status"
